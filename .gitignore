@@ -1,0 +1,29 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local Passbolt setup artifacts
+keys/
+*.out
+setup-*.json
+setup-*.env
+register-user.out
+resource-types.out
+users-me.out
+passbolt-token.out

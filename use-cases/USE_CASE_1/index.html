@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Keycloak SSO Demo - Realm Unificado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; 
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: white;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 32px;
+      border-radius: 16px;
+      color: #333;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { 
+      color: #667eea; 
+      margin-top: 0;
+      text-align: center;
+    }
+    .realm-section {
+      margin: 32px 0;
+      padding: 24px;
+      background: #f6f8fa;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+    .realm-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: #333;
+    }
+    .realm-description {
+      color: #666;
+      margin-bottom: 16px;
+    }
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .app-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      text-decoration: none;
+      color: #333;
+      display: block;
+      transition: all 0.3s ease;
+    }
+    .app-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .app-name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #667eea;
+    }
+    .app-url {
+      font-size: 12px;
+      color: #999;
+      font-family: monospace;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 24px 0;
+      color: #1976d2;
+    }
+    .info-box.warning {
+      background: #fff3cd;
+      border-color: #ffc107;
+      color: #856404;
+    }
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .credentials {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 24px 0;
+      color: #856404;
+    }
+    .credentials h3 {
+      margin-top: 0;
+      color: #856404;
+    }
+    .credentials ul {
+      margin: 8px 0;
+      padding-left: 24px;
+    }
+    .credentials li {
+      margin: 4px 0;
+    }
+    .role-badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Keycloak SSO Demo - Realm Unificado</h1>
+    <p style="text-align: center; color: #666; margin-bottom: 32px;">
+      USE_CASE_1: SSO in corporate and citizen applications (same realm)
+    </p>
+
+    <div class="info-box">
+      <strong>Realm Unificado - SSO Corporativo y Ciudadano</strong>
+      Este demo muestra un <strong>realm único (unified-realm)</strong> que contiene tanto aplicaciones corporativas 
+      como de ciudadano. Un usuario puede tener roles tanto de empleado como de ciudadano en la misma sesión, 
+      permitiendo acceso a todas las aplicaciones con una sola autenticación.
+    </div>
+
+    <div class="info-box warning">
+      <strong>⚠️ Riesgo de Seguridad Identificado</strong>
+      Un empleado puede actuar también como ciudadano en la misma sesión. Las aplicaciones deben validar 
+      roles específicos para cada contexto y documentar los riesgos asociados.
+    </div>
+
+    <div class="realm-section">
+      <div class="realm-title">Unified Realm (unified-realm)</div>
+      <div class="realm-description">
+        Realm único que contiene aplicaciones corporativas y de ciudadano. 
+        Usuarios pueden tener múltiples roles: <span class="role-badge">empleado</span>, 
+        <span class="role-badge">manager</span>, <span class="role-badge">admin</span>, 
+        <span class="role-badge">ciudadano</span>
+      </div>
+      <div class="apps-grid">
+        <a href="http://localhost:3001/portal/" class="app-card">
+          <div class="app-name">Portal de Empleados</div>
+          <div class="app-url">http://localhost:3001/portal/</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">Requiere: empleado</div>
+        </a>
+        <a href="http://localhost:3001/proyectos/" class="app-card">
+          <div class="app-name">Gestión de Proyectos</div>
+          <div class="app-url">http://localhost:3001/proyectos/</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">Requiere: empleado</div>
+        </a>
+        <a href="http://localhost:3001/admin/" class="app-card">
+          <div class="app-name">Panel de Administración</div>
+          <div class="app-url">http://localhost:3001/admin/</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">Requiere: admin</div>
+        </a>
+        <a href="http://localhost:3001/cliente/" class="app-card">
+          <div class="app-name">Aplicación Cliente</div>
+          <div class="app-url">http://localhost:3001/cliente/</div>
+          <div style="font-size: 12px; color: #999; margin-top: 8px;">Requiere: ciudadano</div>
+        </a>
+      </div>
+      <div class="credentials">
+        <h3>Usuarios de Prueba:</h3>
+        <ul>
+          <li><strong>juan.empleado</strong> / empleado123 - Solo empleado</li>
+          <li><strong>maria.gerente</strong> / gerente123 - Empleado + Manager</li>
+          <li><strong>carlos.admin</strong> / admin123 - Empleado + Manager + Admin</li>
+          <li><strong>pedro.ciudadano</strong> / ciudadano123 - Solo ciudadano</li>
+          <li><strong>ana.empleado.ciudadano</strong> / empleado123 - <strong>Empleado + Ciudadano</strong> ⚠️</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top: 32px;">
+      <strong>Características del SSO Unificado:</strong>
+      <ul style="margin: 8px 0; padding-left: 24px;">
+        <li>Una sola autenticación para todas las aplicaciones</li>
+        <li>Un usuario puede tener múltiples roles simultáneamente</li>
+        <li>SSO completo entre aplicaciones corporativas y de ciudadano</li>
+        <li>Tokens compartidos para todas las aplicaciones del realm</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

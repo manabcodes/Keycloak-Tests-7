@@ -1,0 +1,166 @@
+{
+  "realm": "certificado-realm",
+  "enabled": true,
+  "displayName": "Portal Certificado Digital",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+
+  "clients": [
+    {
+      "clientId": "portal-certificado",
+      "name": "Portal Certificado Digital",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://localhost:8443/*",
+        "http://localhost:3007/*"
+      ],
+      "webOrigins": [
+        "https://localhost:8443",
+        "http://localhost:3007"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+
+  "roles": {
+    "realm": [
+      { "name": "ciudadano", "description": "Ciudadano autenticado con certificado digital" },
+      { "name": "funcionario", "description": "Funcionario con certificado de empleado público" }
+    ]
+  },
+
+  "authenticationFlows": [
+    {
+      "alias": "X.509 Browser Flow",
+      "description": "Autenticación con certificado digital español (FNMT/ACCV/ANF)",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 10,
+          "flowAlias": "X.509 Browser - Conditional OTP",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        },
+        {
+          "authenticator": "auth-x509-client-username-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "X.509 Browser - Conditional OTP",
+      "description": "Flow condicional para OTP (solo si el usuario tiene OTP configurado)",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+
+  "authenticatorConfig": [
+    {
+      "alias": "X509-Config-FNMT",
+      "config": {
+        "x509-cert-auth.mapping-source-selection": "Match SubjectDN using regular expression",
+        "x509-cert-auth.regular-expression": "serialNumber=IDCES-([^,]+)",
+        "x509-cert-auth.user-mapper-selection": "Username or Email",
+        "x509-cert-auth.username-email-http-header": "IGNORE",
+        "x509-cert-auth.canonical-dn-enabled": "false",
+        "x509-cert-auth.serialnumber-hex-enabled": "false",
+        "x509-cert-auth.timestamp-validation-enabled": "true",
+        "x509-cert-auth.crl-checking-enabled": "false",
+        "x509-cert-auth.ocsp-checking-enabled": "false",
+        "x509-cert-auth.confirmation-page-disallowed": "false",
+        "x509-cert-auth.revalidate-certificate-enabled": "false"
+      }
+    }
+  ],
+
+  "browserFlow": "X.509 Browser Flow",
+
+  "users": [
+    {
+      "username": "12345678A",
+      "email": "ciudadano.demo@example.es",
+      "firstName": "Juan",
+      "lastName": "García Martínez",
+      "enabled": true,
+      "attributes": {
+        "dni": ["12345678A"],
+        "nivel_seguridad": ["ENS_ALTO"],
+        "tipo_certificado": ["FNMT"]
+      },
+      "realmRoles": ["ciudadano"],
+      "credentials": []
+    },
+    {
+      "username": "Z2171059W",
+      "email": "meem.arafat@example.es",
+      "firstName": "Meem Arafat",
+      "lastName": "Manab",
+      "enabled": true,
+      "attributes": {
+        "nie": ["Z2171059W"],
+        "nivel_seguridad": ["ENS_ALTO"],
+        "tipo_certificado": ["FNMT"]
+      },
+      "realmRoles": ["ciudadano"],
+      "credentials": []
+    }
+  ],
+
+  "scopeMappings": [
+    {
+      "client": "portal-certificado",
+      "roles": ["ciudadano", "funcionario"]
+    }
+  ],
+
+  "clientScopeMappings": {},
+
+  "defaultDefaultClientScopes": [
+    "profile",
+    "email",
+    "roles",
+    "web-origins"
+  ]
+}

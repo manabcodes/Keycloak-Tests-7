@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: uc7-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - uc7-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: uc7-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_HTTP_ENABLED: "true"
+      KC_HTTPS_REQUIRED: "none"
+      KC_HOSTNAME_STRICT: "false"
+      KC_PROXY: edge
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: "8443"
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_SPI_X509CERT_LOOKUP_PROVIDER: nginx
+      KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT: ssl-client-cert
+      KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CERT_CHAIN_PREFIX: USELESS
+      KC_SPI_X509CERT_LOOKUP_NGINX_CERTIFICATE_CHAIN_LENGTH: "10"
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - uc7-network
+    volumes:
+      - ./keycloak-config:/opt/keycloak/data/import
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/master || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  nginx:
+    image: nginx:alpine
+    container_name: uc7-nginx
+    ports:
+      - "8443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./certificates/spanish-cas:/etc/nginx/ssl/spanish-cas:ro
+      - ./apps:/usr/share/nginx/html:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - uc7-network
+
+volumes:
+  postgres_data:
+
+networks:
+  uc7-network:
+    driver: bridge

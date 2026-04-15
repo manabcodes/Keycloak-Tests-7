@@ -1,0 +1,142 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: keycloak-postgres-casouso2
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - postgres_data_casouso2:/var/lib/postgresql/data
+    networks:
+      - machine-auth-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak-server-casouso2
+    command: start-dev --import-realm --http-enabled=true
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HTTP_RELATIVE_PATH: /
+      KC_PROXY: none
+      KC_HTTPS_REQUIRED: none
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - machine-auth-network
+    volumes:
+      - ./keycloak-config:/opt/keycloak/data/import
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/realms/master/.well-known/openid-configuration || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  app-z:
+    build:
+      context: ./apps/app-z
+      dockerfile: Dockerfile
+    container_name: app-z-casouso2
+    environment:
+      KEYCLOAK_INTROSPECTION_URL: http://keycloak:8080/realms/machine-realm/protocol/openid-connect/token/introspect
+      INTROSPECTION_CLIENT_ID: app-z-api
+      INTROSPECTION_CLIENT_SECRET: app-z-secret-123
+      REQUIRED_CLIENT_ID: app-x-service
+    ports:
+      - "5002:5002"
+    networks:
+      - machine-auth-network
+    depends_on:
+      - keycloak
+
+  app-x:
+    build:
+      context: ./apps/app-x
+      dockerfile: Dockerfile
+    container_name: app-x-casouso2
+    environment:
+      PASSBOLT_BASE_URL: http://passbolt-real
+      PASSBOLT_SERVICE_KEY_ID: ${PASSBOLT_SERVICE_KEY_ID:-7E0F112371CE03B28B7A60E216DAFA1F839BB27A}
+      PASSBOLT_PRIVATE_KEY: ${PASSBOLT_PRIVATE_KEY:-}
+      PASSBOLT_PRIVATE_KEY_FILE: /app/keys/service-passbolt.key
+      PASSBOLT_PRIVATE_KEY_PASSPHRASE: ${PASSBOLT_PRIVATE_KEY_PASSPHRASE:-}
+      PASSBOLT_SECRET_RESOURCE_ID: ${PASSBOLT_SECRET_RESOURCE_ID:-c86cbe19-118c-4e1b-b51d-2cb9ec320ef4}
+    ports:
+      - "5003:5000"
+    networks:
+      - machine-auth-network
+    volumes:
+      - ./keys/service-passbolt.key:/app/keys/service-passbolt.key:ro
+    depends_on:
+      passbolt-real:
+        condition: service_healthy
+      app-z:
+        condition: service_started
+
+  passbolt-db-real:
+    image: mariadb:10.11
+    container_name: passbolt-db-real-casouso2
+    environment:
+      MARIADB_ROOT_PASSWORD: passbolt-root
+      MARIADB_DATABASE: passbolt
+      MARIADB_USER: passbolt
+      MARIADB_PASSWORD: passbolt-secret
+    volumes:
+      - passbolt_db_real_data:/var/lib/mysql
+    networks:
+      - machine-auth-network
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -uroot -ppassbolt-root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  passbolt-real:
+    image: passbolt/passbolt:latest-ce
+    container_name: passbolt-real-casouso2
+    depends_on:
+      passbolt-db-real:
+        condition: service_healthy
+    environment:
+      APP_FULL_BASE_URL: http://localhost:8083
+      DATASOURCES_DEFAULT_HOST: passbolt-db-real
+      DATASOURCES_DEFAULT_USERNAME: passbolt
+      DATASOURCES_DEFAULT_PASSWORD: passbolt-secret
+      DATASOURCES_DEFAULT_DATABASE: passbolt
+      PASSBOLT_SSL_FORCE: "false"
+    ports:
+      - "8083:80"
+    networks:
+      - machine-auth-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/healthcheck/status.json || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+volumes:
+  postgres_data_casouso2:
+  passbolt_db_real_data:
+
+networks:
+  machine-auth-network:
+    driver: bridge

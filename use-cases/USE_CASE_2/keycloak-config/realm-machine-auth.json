@@ -1,0 +1,38 @@
+{
+  "realm": "machine-realm",
+  "enabled": true,
+  "displayName": "Machine Auth Realm",
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "app-x-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "app-x-secret-123",
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false
+    },
+    {
+      "clientId": "app-z-api",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "app-z-secret-123",
+      "protocol": "openid-connect",
+      "serviceAccountsEnabled": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "z.read",
+        "description": "Permite lectura de recursos en la aplicacion Z"
+      }
+    ]
+  }
+}

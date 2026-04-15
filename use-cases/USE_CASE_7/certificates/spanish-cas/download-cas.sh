@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Descarga las Autoridades de Certificación españolas de confianza
+# Fuentes oficiales: FNMT, ACCV, ANF, Camerfirma
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+BUNDLE="spanish-cas-bundle.pem"
+> "$BUNDLE"   # vaciar/crear
+
+add_cert_from_url() {
+    local name="$1"
+    local url="$2"
+    local format="${3:-pem}"   # pem | der
+
+    echo "  📥 $name ..."
+    local tmpfile
+    tmpfile=$(mktemp /tmp/ca_XXXXXX)
+
+    if curl -sf --max-time 15 -L -o "$tmpfile" "$url"; then
+        if [ "$format" = "der" ]; then
+            openssl x509 -inform DER -in "$tmpfile" -out "${tmpfile}.pem" 2>/dev/null \
+                && mv "${tmpfile}.pem" "$tmpfile" \
+                || { echo "    ⚠️  No se pudo convertir DER→PEM para $name"; rm -f "$tmpfile"; return; }
+        fi
+        if openssl x509 -in "$tmpfile" -noout 2>/dev/null; then
+            echo "# $name" >> "$BUNDLE"
+            cat "$tmpfile" >> "$BUNDLE"
+            echo "" >> "$BUNDLE"
+            echo "    ✅ Añadida"
+        else
+            echo "    ⚠️  Fichero no válido, omitiendo"
+        fi
+    else
+        echo "    ⚠️  No se pudo descargar (URL puede haber cambiado). Continuando..."
+    fi
+    rm -f "$tmpfile"
+}
+
+echo ""
+echo "========================================="
+echo "  Descarga de CAs Españolas"
+echo "========================================="
+echo ""
+
+echo "▶ FNMT-RCM (Fábrica Nacional de Moneda y Timbre)"
+add_cert_from_url "FNMT Raíz SHA-256" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Raiz_FNMT-RCM_SHA256.cer" der
+add_cert_from_url "FNMT AC Usuarios" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_FNMT_Usuarios.cer" der
+add_cert_from_url "FNMT AC Usuarios G2" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Usuarios_G2.cer" der
+add_cert_from_url "FNMT AC Componentes" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Componentes_Informaticos_SHA256.cer" der
+add_cert_from_url "FNMT AC Representación" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Representacion.cer" der
+add_cert_from_url "FNMT AC Representación G2" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Representacion_G2.cer" der
+add_cert_from_url "FNMT AC Sector Público" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Sector_Publico.cer" der
+add_cert_from_url "FNMT Raíz G2" \
+    "https://www.sede.fnmt.gob.es/documents/10445900/10526749/AC_Raiz_FNMT-RCM_G2.cer" der
+
+echo ""
+echo "▶ ACCV (Agencia de Tecnología y Certificación Electrónica - Comunitat Valenciana)"
+add_cert_from_url "ACCV Raíz 1" \
+    "https://www.accv.es/fileadmin/Archivos/certificados/raizaccv1.crt" der
+add_cert_from_url "ACCV Raíz 2" \
+    "https://www.accv.es/fileadmin/Archivos/certificados/raizaccv2.crt" der
+
+echo ""
+echo "▶ ANF AC (Agencia de Notificación y Certificación)"
+add_cert_from_url "ANF Raíz" \
+    "https://anf.es/wp-content/uploads/2021/02/ANFROOTCA.crt" der
+
+echo ""
+echo "▶ Camerfirma"
+add_cert_from_url "Camerfirma Chambers of Commerce Root" \
+    "https://www.camerfirma.com/wp-content/uploads/2021/09/Chambers_of_Commerce_Root-2008.crt" der
+
+echo ""
+# Contar cuántas CAs se añadieron
+COUNT=$(grep -c "^-----BEGIN CERTIFICATE-----" "$BUNDLE" 2>/dev/null || echo 0)
+
+if [ "$COUNT" -eq 0 ]; then
+    echo "⚠️  No se descargó ninguna CA automáticamente."
+    echo ""
+    echo "   Para pruebas locales, genera una CA auto-firmada de desarrollo:"
+    echo ""
+    echo "   openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \\"
+    echo "     -keyout dev-ca.key -out dev-ca.crt \\"
+    echo "     -subj '/C=ES/O=Dev CA/CN=Spanish Dev CA'"
+    echo "   cat dev-ca.crt >> $BUNDLE"
+    echo ""
+    echo "   O importa tu certificado FNMT real y extrae la CA:"
+    echo "   openssl pkcs12 -in tu-certificado.p12 -nokeys -cacerts -out fnmt-ca.pem"
+    echo "   cat fnmt-ca.pem >> $BUNDLE"
+    echo ""
+    # Crear un bundle mínimo para que nginx no falle al arrancar
+    echo "# Placeholder - reemplazar con CAs reales" >> "$BUNDLE"
+    openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+        -keyout /tmp/dev-ca.key -out /tmp/dev-ca.crt \
+        -subj "/C=ES/O=Dev CA/CN=Spanish Dev CA" 2>/dev/null
+    cat /tmp/dev-ca.crt >> "$BUNDLE"
+    echo "   ℹ️  Creada CA de desarrollo como placeholder."
+else
+    echo "✅ Bundle creado con $COUNT CA(s) españolas: $BUNDLE"
+fi
+
+echo ""
+echo "Ubicación: $SCRIPT_DIR/$BUNDLE"

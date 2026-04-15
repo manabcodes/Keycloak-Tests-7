@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>USE_CASE_2 - Demo Interactiva</title>
+    <style>
+      :root {
+        --primary: #667eea;
+        --primary-dark: #5568d3;
+        --ok: #10b981;
+        --warn: #f59e0b;
+        --err: #ef4444;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 24px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(255,255,255,0.97);
+        border-radius: 18px;
+        padding: 32px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      }
+      h1 { color: var(--primary); text-align: center; margin-bottom: 6px; font-size: clamp(1.3rem, 2.4vw, 1.9rem); }
+      .subtitle { text-align: center; color: #666; margin-bottom: 28px; font-size: 0.93rem; }
+
+      .scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 22px; }
+      .scenario-card {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .scenario-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(102,126,234,0.2); }
+      .scenario-card.active { border-color: var(--primary); background: #f0f3ff; }
+      .scenario-card h3 { font-size: 0.95rem; margin-bottom: 5px; color: #1f2937; }
+      .scenario-card p { font-size: 0.81rem; color: #6b7280; line-height: 1.45; }
+      .scenario-tag { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; margin-bottom: 7px; letter-spacing: 0.03em; }
+      .tag-ok { background: #d1fae5; color: #065f46; }
+      .tag-err { background: #fee2e2; color: #991b1b; }
+
+      .run-btn {
+        display: block; width: 100%;
+        padding: 13px; background: var(--primary); color: white;
+        border: none; border-radius: 10px; font-size: 1rem; font-weight: 600;
+        cursor: pointer; margin-bottom: 20px; transition: background 0.2s;
+      }
+      .run-btn:hover { background: var(--primary-dark); }
+      .run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+      .trace { background: #0b1120; border-radius: 12px; padding: 18px; min-height: 88px; }
+      .trace-empty { color: #4b5563; font-size: 0.87rem; font-style: italic; text-align: center; padding: 14px 0; }
+      .step-row {
+        display: flex; align-items: flex-start; gap: 11px;
+        padding: 8px 0; border-bottom: 1px solid #1e293b;
+        opacity: 0; transform: translateY(7px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+      }
+      .step-row.visible { opacity: 1; transform: translateY(0); }
+      .step-row:last-child { border-bottom: none; }
+      .step-icon { font-size: 1rem; min-width: 20px; text-align: center; margin-top: 1px; }
+      .step-name { font-size: 0.87rem; font-weight: 600; color: #e2e8f0; }
+      .step-detail { font-size: 0.77rem; color: #94a3b8; margin-top: 2px; font-family: monospace; word-break: break-all; }
+
+      .result { margin-top: 16px; }
+      .result-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-weight: 700; font-size: 0.97rem;
+        padding: 6px 14px; border-radius: 8px; margin-bottom: 10px;
+      }
+      .badge-ok { background: #d1fae5; color: #065f46; }
+      .badge-err { background: #fee2e2; color: #991b1b; }
+      .badge-hidden { display: none; }
+      pre {
+        background: #0b1120; color: #a5f3fc;
+        border-radius: 10px; padding: 14px;
+        overflow: auto; max-height: 220px;
+        font-size: 0.81rem; display: none;
+      }
+
+      .links { margin-top: 22px; padding-top: 16px; border-top: 2px solid #e5e7eb; display: flex; gap: 10px; flex-wrap: wrap; }
+      .ext-link {
+        padding: 7px 14px; border: 2px solid var(--primary);
+        color: var(--primary); border-radius: 8px;
+        text-decoration: none; font-size: 0.87rem; font-weight: 500;
+        transition: background 0.15s, color 0.15s;
+      }
+      .ext-link:hover { background: var(--primary); color: white; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Demo Interactiva · Caso 2</h1>
+      <p class="subtitle">App X obtiene secretos de Passbolt → solicita token a Keycloak → consume App Z</p>
+
+      <div class="scenarios">
+        <div class="scenario-card active" data-endpoint="/flow/detailed" onclick="selectScenario(this)">
+          <span class="scenario-tag tag-ok">Flujo correcto</span>
+          <h3>🔐 Flujo completo real</h3>
+          <p>App X usa Passbolt para obtener credenciales cifradas, pide token a Keycloak y accede a App Z. Todo automatizado.</p>
+        </div>
+        <div class="scenario-card" data-endpoint="/flow/invalid-token" onclick="selectScenario(this)">
+          <span class="scenario-tag tag-err">Seguridad</span>
+          <h3>🚫 Token inválido</h3>
+          <p>Se intenta acceder a App Z con un Bearer token falso, saltándose Passbolt y Keycloak. App Z debe rechazarlo.</p>
+        </div>
+        <div class="scenario-card" data-endpoint="/flow/no-token" onclick="selectScenario(this)">
+          <span class="scenario-tag tag-err">Seguridad</span>
+          <h3>🔒 Sin token (acceso directo)</h3>
+          <p>Se llama directamente a App Z sin ninguna autorización. Demuestra que el recurso no es accesible sin token.</p>
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runFlow()">▶ Ejecutar escenario</button>
+
+      <div class="trace" id="trace">
+        <div class="trace-empty">Selecciona un escenario y pulsa "Ejecutar"</div>
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-badge badge-hidden" id="resultBadge"></div>
+        <pre id="resultJson"></pre>
+      </div>
+
+      <div class="links">
+        <a class="ext-link" href="http://localhost:8082/admin" target="_blank" rel="noreferrer">Keycloak Admin</a>
+        <a class="ext-link" href="http://localhost:8083" target="_blank" rel="noreferrer">Passbolt</a>
+        <a class="ext-link" href="http://localhost:5002/health" target="_blank" rel="noreferrer">App Z Health</a>
+      </div>
+    </div>
+
+    <script>
+      let currentEndpoint = '/flow/detailed';
+
+      function selectScenario(card) {
+        document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        currentEndpoint = card.dataset.endpoint;
+        clearTrace();
+      }
+
+      function clearTrace() {
+        document.getElementById('trace').innerHTML = '<div class="trace-empty">Selecciona un escenario y pulsa "Ejecutar"</div>';
+        document.getElementById('resultBadge').className = 'result-badge badge-hidden';
+        document.getElementById('resultJson').style.display = 'none';
+      }
+
+      function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+      async function showStep(step, delayMs) {
+        await delay(delayMs);
+        const trace = document.getElementById('trace');
+        const icon = step.status === 'ok' ? '✅' : step.status === 'warn' ? '⚠️' : '❌';
+        const row = document.createElement('div');
+        row.className = 'step-row';
+        row.innerHTML = `
+          <span class="step-icon">${icon}</span>
+          <div>
+            <div class="step-name">Paso ${step.step}: ${step.name}</div>
+            <div class="step-detail">${step.detail}</div>
+          </div>`;
+        trace.appendChild(row);
+        requestAnimationFrame(() => requestAnimationFrame(() => row.classList.add('visible')));
+      }
+
+      async function runFlow() {
+        const btn = document.getElementById('runBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Ejecutando…';
+
+        document.getElementById('trace').innerHTML = '';
+        document.getElementById('resultBadge').className = 'result-badge badge-hidden';
+        document.getElementById('resultJson').style.display = 'none';
+
+        try {
+          const resp = await fetch(currentEndpoint);
+          const data = await resp.json();
+
+          for (let i = 0; i < data.steps.length; i++) {
+            await showStep(data.steps[i], i * 450);
+          }
+
+          await delay(data.steps.length * 450 + 320);
+
+          const ok = data.final_status === 200;
+          const badge = document.getElementById('resultBadge');
+          badge.className = `result-badge ${ok ? 'badge-ok' : 'badge-err'}`;
+          badge.textContent = ok
+            ? `✅ HTTP ${data.final_status} — Acceso autorizado`
+            : `❌ HTTP ${data.final_status} — Acceso denegado`;
+
+          const pre = document.getElementById('resultJson');
+          pre.textContent = JSON.stringify(data.final_response, null, 2);
+          pre.style.display = 'block';
+
+        } catch (err) {
+          document.getElementById('trace').innerHTML +=
+            `<div class="step-row visible"><span class="step-icon">❌</span><div><div class="step-name">Error de red</div><div class="step-detail">${err}</div></div></div>`;
+        }
+
+        btn.disabled = false;
+        btn.textContent = '▶ Ejecutar escenario';
+      }
+    </script>
+  </body>
+</html>
